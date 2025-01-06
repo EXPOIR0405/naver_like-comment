@@ -27,10 +27,11 @@ def main():
             
         while True:
             print("\n1. URL 입력하기")
-            print("2. 프로그램 종료")
-            choice = input("\n선택해주세요 (1 또는 2): ")
+            print("2. 서로이웃 신청하기")
+            print("3. 프로그램 종료")
+            choice = input("\n선택해주세요 (1, 2 또는 3): ")
             
-            if choice == "2":
+            if choice == "3":
                 print("프로그램을 종료합니다.")
                 break
                 
@@ -38,10 +39,15 @@ def main():
                 url = input("\n블로그 포스트 URL을 입력해주세요: ")
                 
                 try:
-                    # 좋아요
-                    print("좋아요 누르는 중...")
-                    bot.like_post(url)
-                    time.sleep(random.uniform(2, 4))
+                    # 좋아요 시도
+                    print("좋아요 시도 중...")
+                    try:
+                        bot.like_post(url)
+                        print("✅ 좋아요 완료!")
+                    except Exception as like_error:
+                        print("ℹ️ 공감 버튼을 찾을 수 없거나 이미 공감한 글입니다.")
+                    
+                    time.sleep(random.uniform(1, 2))
                     
                     # 댓글
                     comments = [
@@ -61,7 +67,18 @@ def main():
                     ]
                     print("댓글 작성 중...")
                     bot.comment_post(url, random.choice(comments))
+                    print("✅ 댓글 작성 완료!")
                     
+                except Exception as e:
+                    print(f"\n❌ 오류 발생: {str(e)}")
+                    
+                continue
+                
+            elif choice == "2":
+                url = input("\n서로이웃 신청할 블로그 URL을 입력해주세요: ")
+                try:
+                    print("서로이웃 신청 중...")
+                    bot.add_neighbor(url)
                     print("\n✅ 처리 완료!")
                     
                 except Exception as e:

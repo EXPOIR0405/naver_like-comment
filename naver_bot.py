@@ -10,6 +10,7 @@ import json
 import os
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
+import random
 
 class NaverBlogBot:
     def __init__(self):
@@ -306,3 +307,125 @@ class NaverBlogBot:
             raise e
         finally:
             self.driver.switch_to.default_content() 
+    
+    def add_neighbor(self, url):
+        try:
+            # 블로그 페이지로 이동
+            self.driver.get(url)
+            time.sleep(1)  # 1초로 단축
+            
+            # iframe 처리
+            try:
+                self.driver.switch_to.default_content()
+                mainFrame = self.driver.find_element(By.ID, "mainFrame")
+                self.driver.switch_to.frame(mainFrame)
+            except:
+                pass
+            
+            # 이웃추가 버튼 찾기
+            selectors = [
+                ".btn_buddy.btn_addbuddy._buddy_popup_btn",
+                "a.btn_buddy.btn_addbuddy",
+                "a[onclick*='addnei']",
+                "a[class*='addbuddy']"
+            ]
+            
+            add_buddy_btn = None
+            for selector in selectors:
+                try:
+                    add_buddy_btn = WebDriverWait(self.driver, 3).until(  # 3초로 단축
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                    break
+                except:
+                    continue
+                
+            if add_buddy_btn:
+                self.driver.execute_script("arguments[0].click();", add_buddy_btn)
+                time.sleep(0.5)  # 0.5초로 단축
+                
+                # 팝업창으로 전환
+                windows = self.driver.window_handles
+                self.driver.switch_to.window(windows[-1])
+                
+                # 서로이웃 라디오 버튼 시도
+                try:
+                    radio_selector = "input[type='radio'][value='1']"
+                    radio_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                        EC.presence_of_element_located((By.CSS_SELECTOR, radio_selector))
+                    )
+                    if radio_btn.is_enabled():
+                        self.driver.execute_script("""
+                            arguments[0].click();
+                            arguments[0].checked = true;
+                            arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                        """, radio_btn)
+                except:
+                    print("서로이웃을 받지 않는 블로거입니다. 일반 이웃으로 진행합니다.")
+                
+                time.sleep(0.5)  # 0.5초로 단축
+                
+                # 첫 번째 다음 버튼 클릭
+                first_next_selectors = [
+                    ".button_next._buddyAddNext",
+                    "a[href='javascript:buddyAdd();']",
+                    "a.button_next[role='button']"
+                ]
+                
+                for selector in first_next_selectors:
+                    try:
+                        next_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        )
+                        self.driver.execute_script("arguments[0].click();", next_btn)
+                        break
+                    except:
+                        continue
+                
+                time.sleep(0.5)  # 0.5초로 단축
+                
+                try:
+                    # 서로이웃인 경우
+                    message_box = self.driver.find_element(By.CSS_SELECTOR, "textarea#message")
+                    message_box.clear()
+                    message_box.send_keys("법무법인 정의와 동행이라고 합니다. 잘 부탁드립니다!")
+                    time.sleep(0.5)  # 0.5초로 단축
+                    
+                    final_next_btn = self.driver.find_element(By.CSS_SELECTOR, ".button_next._addBothBuddy")
+                    final_next_btn.click()
+                except:
+                    # 일반 이웃인 경우
+                    try:
+                        normal_next_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, ".button_next._addBuddy"))
+                        )
+                        self.driver.execute_script("arguments[0].click();", normal_next_btn)
+                    except:
+                        pass
+                
+                time.sleep(0.5)  # 0.5초로 단축
+                
+                # 닫기 버튼 클릭
+                close_selectors = [
+                    ".button_close[onclick*='window.close']",
+                    "a.button_close[role='button']"
+                ]
+                
+                for selector in close_selectors:
+                    try:
+                        close_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        )
+                        self.driver.execute_script("arguments[0].click();", close_btn)
+                        break
+                    except:
+                        continue
+                
+                # 메인 창으로 돌아가기
+                self.driver.switch_to.window(windows[0])
+                
+                return True
+                
+        except Exception as e:
+            print(f"서로이웃 신청 중 오류 발생: {str(e)}")
+            return False 
