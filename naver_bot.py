@@ -11,6 +11,7 @@ import os
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 import random
+import pyautogui
 
 class NaverBlogBot:
     def __init__(self):
@@ -351,7 +352,7 @@ class NaverBlogBot:
                 # 서로이웃 라디오 버튼 시도
                 try:
                     radio_selector = "input[type='radio'][value='1']"
-                    radio_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                    radio_btn = WebDriverWait(self.driver, 3).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, radio_selector))
                     )
                     if radio_btn.is_enabled():
@@ -363,63 +364,83 @@ class NaverBlogBot:
                 except:
                     print("서로이웃을 받지 않는 블로거입니다. 일반 이웃으로 진행합니다.")
                 
-                time.sleep(0.5)  # 0.5초로 단축
+                time.sleep(1)
                 
-                # 첫 번째 다음 버튼 클릭
+                # 첫 번째 다음 버튼 클릭 (여러 선택자 시도)
                 first_next_selectors = [
                     ".button_next._buddyAddNext",
                     "a[href='javascript:buddyAdd();']",
-                    "a.button_next[role='button']"
+                    "a.button_next[role='button']",
+                    "a.button_next"
                 ]
                 
+                first_next_clicked = False
                 for selector in first_next_selectors:
                     try:
-                        next_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                        next_btn = WebDriverWait(self.driver, 3).until(
                             EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                         )
                         self.driver.execute_script("arguments[0].click();", next_btn)
+                        first_next_clicked = True
                         break
                     except:
                         continue
+                    
+                if not first_next_clicked:
+                    raise Exception("첫 번째 다음 버튼을 찾을 수 없습니다.")
                 
-                time.sleep(0.5)  # 0.5초로 단축
+                time.sleep(2)
                 
                 try:
-                    # 서로이웃인 경우
+                    # 메시지 입력 (서로이웃인 경우)
                     message_box = self.driver.find_element(By.CSS_SELECTOR, "textarea#message")
                     message_box.clear()
                     message_box.send_keys("법무법인 정의와 동행이라고 합니다. 잘 부탁드립니다!")
-                    time.sleep(0.5)  # 0.5초로 단축
+                    time.sleep(1)
                     
+                    # 서로이웃인 경우의 다음 버튼
                     final_next_btn = self.driver.find_element(By.CSS_SELECTOR, ".button_next._addBothBuddy")
                     final_next_btn.click()
                 except:
-                    # 일반 이웃인 경우
+                    # 일반 이웃인 경우의 다음 버튼
                     try:
-                        normal_next_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                        # 일반 이웃 다음 버튼이 나타날 때까지 더 오래 대기
+                        normal_next_btn = WebDriverWait(self.driver, 10).until(
                             EC.element_to_be_clickable((By.CSS_SELECTOR, ".button_next._addBuddy"))
                         )
+                        time.sleep(2)  # 추가 대기 시간
                         self.driver.execute_script("arguments[0].click();", normal_next_btn)
                     except:
                         pass
                 
-                time.sleep(0.5)  # 0.5초로 단축
+                time.sleep(3)  # 닫기 버튼이 나타날 때까지 대기 시간 증가
                 
-                # 닫기 버튼 클릭
+                # 닫기 버튼 클릭 (여러 선택자 시도)
                 close_selectors = [
                     ".button_close[onclick*='window.close']",
-                    "a.button_close[role='button']"
+                    "a.button_close[role='button']",
+                    "a[onclick*='window.close']",
+                    ".button_close"
                 ]
                 
+                close_clicked = False
                 for selector in close_selectors:
                     try:
-                        close_btn = WebDriverWait(self.driver, 2).until(  # 2초로 단축
+                        close_btn = WebDriverWait(self.driver, 3).until(
                             EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                         )
                         self.driver.execute_script("arguments[0].click();", close_btn)
+                        close_clicked = True
                         break
                     except:
                         continue
+                    
+                if not close_clicked:
+                    # JavaScript로 직접 창 닫기 시도
+                    try:
+                        self.driver.execute_script("window.close();")
+                    except:
+                        print("창 닫기 실패")
                 
                 # 메인 창으로 돌아가기
                 self.driver.switch_to.window(windows[0])
@@ -428,4 +449,84 @@ class NaverBlogBot:
                 
         except Exception as e:
             print(f"서로이웃 신청 중 오류 발생: {str(e)}")
-            return False 
+            return False
+    
+    def save_as_pdf(self, url):
+        try:
+            # 블로그 페이지로 이동
+            self.driver.get(url)
+            time.sleep(2)
+            
+            # iframe 처리
+            try:
+                self.driver.switch_to.default_content()
+                mainFrame = self.driver.find_element(By.ID, "mainFrame")
+                self.driver.switch_to.frame(mainFrame)
+            except:
+                pass
+            
+            # 인쇄 버튼 클릭 (단순화된 선택자)
+            print_selectors = [
+                "a._printPost",  # 실제 인쇄 버튼 선택자
+                "a.pcol2._printPost"  # 백업 선택자
+            ]
+            
+            print_clicked = False
+            for selector in print_selectors:
+                try:
+                    print(f"인쇄 버튼 찾는 중: {selector}")
+                    print_btn = WebDriverWait(self.driver, 2).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                    self.driver.execute_script("arguments[0].click();", print_btn)
+                    print_clicked = True
+                    print("인쇄 버튼 클릭 성공!")
+                    break
+                except:
+                    continue
+                
+            if not print_clicked:
+                raise Exception("인쇄 버튼을 찾을 수 없습니다.")
+                
+            # 프린트 창으로 전환
+            time.sleep(2)
+            windows = self.driver.window_handles
+            self.driver.switch_to.window(windows[-1])
+            
+            # 두 번째 출력하기 버튼 클릭 (이미지 버튼)
+            output_button_selectors = [
+                "img[src*='btn_print2.gif']",
+                "img.pop_btns[alt='출력하기']",
+                "img[alt='출력하기']"
+            ]
+            
+            output_clicked = False
+            for selector in output_button_selectors:
+                try:
+                    print(f"출력하기 버튼 찾는 중: {selector}")
+                    output_btn = WebDriverWait(self.driver, 3).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                    self.driver.execute_script("arguments[0].click();", output_btn)
+                    output_clicked = True
+                    print("출력하기 버튼 클릭 성공!")
+                    break
+                except:
+                    continue
+                
+            if not output_clicked:
+                raise Exception("출력하기 버튼을 찾을 수 없습니다.")
+            
+            # 출력하기 버튼 클릭 후 대기
+            if not output_clicked:
+                raise Exception("출력하기 버튼을 찾을 수 없습니다.")
+            
+            time.sleep(2)
+            
+            print(f"\n✅ 프린트 대화상자가 열렸습니다!")
+            print("💡 이제 저장 위치와 파일명을 선택 후 저장해주세요.")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 오류 발생: {str(e)}")
+            return False

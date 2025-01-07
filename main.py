@@ -28,10 +28,11 @@ def main():
         while True:
             print("\n1. URL 입력하기")
             print("2. 서로이웃 신청하기")
-            print("3. 프로그램 종료")
-            choice = input("\n선택해주세요 (1, 2 또는 3): ")
+            print("3. PDF로 저장하기")
+            print("4. 프로그램 종료")
+            choice = input("\n선택해주세요 (1-4): ")
             
-            if choice == "3":
+            if choice == "4":
                 print("프로그램을 종료합니다.")
                 break
                 
@@ -79,6 +80,18 @@ def main():
                 try:
                     print("서로이웃 신청 중...")
                     bot.add_neighbor(url)
+                    print("\n✅ 처리 완료!")
+                    
+                except Exception as e:
+                    print(f"\n❌ 오류 발생: {str(e)}")
+                    
+                continue
+                
+            elif choice == "3":
+                url = input("\n저장할 블로그 포스트 URL을 입력해주세요: ")
+                try:
+                    print("PDF 저장 중...")
+                    bot.save_as_pdf(url)
                     print("\n✅ 처리 완료!")
                     
                 except Exception as e:
