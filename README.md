@@ -26,7 +26,7 @@ pip install selenium webdriver_manager python-dotenv
 ### 실행 방법
 1. 저장소 클론
 ```bash
-git clone [https://github.com/EXPOIR0405/naver_like-comment]
+git clone https://github.com/EXPOIR0405/naver_like-comment
 ```
 
 2. 가상환경 설정
